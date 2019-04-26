@@ -8,6 +8,54 @@ trigger:
 jobs:
 
 
+### recipes/athrill-gcc/Dockerfile athrill/athrill-gcc depends on camino.azurecr.io/gcc-rene/v850-elf:14.01 camino.azurecr.io/gcc-rene/v850-elf/14.01
+  - job: "recipes__athrill__gcc__Dockerfile"
+    timeoutInMinutes: 0
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    steps:
+
+    - task: Docker@1
+      displayName: 'Login to ACR.'
+      inputs:
+        command: login
+        dockerRegistryEndpoint: camino.azurecr.io
+        containerregistrytype: Container Registry
+
+    - script: |
+        set +e
+        docker pull camino.azurecr.io/camino.azurecr.io/cantinona-partial/toppers-cfg:1.9.7
+        if [[ $? == 0 ]]; then
+          docker tag camino.azurecr.io/camino.azurecr.io/cantinona-partial/toppers-cfg:1.9.7 camino.azurecr.io/cantinona-partial/toppers-cfg:1.9.7
+        fi
+        docker pull camino.azurecr.io/athrill/athrill-gcc
+        if [[ $? == 0 ]]; then
+          docker tag camino.azurecr.io/athrill/athrill-gcc athrill/athrill-gcc
+        else
+          docker pull athrill/athrill-gcc
+        fi
+        if [[ $? != 0 ]]; then
+          docker tag scratch athrill/athrill-gcc
+        fi
+        docker pull camino.azurecr.io/camino.azurecr.io/gcc-rene/v850-elf:14.01
+        if [[ $? == 0 ]]; then
+          docker tag camino.azurecr.io/camino.azurecr.io/gcc-rene/v850-elf:14.01 camino.azurecr.io/gcc-rene/v850-elf:14.01
+        else
+          docker pull camino.azurecr.io/gcc-rene/v850-elf:14.01
+        fi
+        if [[ $? != 0 ]]; then
+          docker tag scratch camino.azurecr.io/gcc-rene/v850-elf:14.01
+        fi
+        exit 0
+      continueOnError: true
+      failOnStderr: false
+      displayName: "Pulling cache. (errors will be ignored)"
+    - script: docker build -f recipes/athrill-gcc/Dockerfile --cache-from athrill/athrill-gcc -t camino.azurecr.io/athrill/athrill-gcc recipes/athrill-gcc
+      displayName: "Building camino.azurecr.io/athrill/athrill-gcc"
+    - script: docker push camino.azurecr.io/athrill/athrill-gcc
+      displayName: "Pushing camino.azurecr.io/athrill/athrill-gcc"
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+
 ### recipes/athrill-gcc/tmori/Dockerfile athrill/athrill-gcc:tmori depends on eclipse/cpp_gcc:latest eclipse/cpp_gcc/latest
   - job: "recipes__athrill__gcc__tmori__Dockerfile"
     timeoutInMinutes: 0
@@ -50,48 +98,4 @@ jobs:
       displayName: "Building camino.azurecr.io/athrill/athrill-gcc:tmori"
     - script: docker push camino.azurecr.io/athrill/athrill-gcc:tmori
       displayName: "Pushing camino.azurecr.io/athrill/athrill-gcc:tmori"
-      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-### recipes/athrill-gcc/latest/Dockerfile athrill/athrill-gcc:latest depends on eclipse/cpp_gcc:latest eclipse/cpp_gcc/latest
-  - job: "recipes__athrill__gcc__latest__Dockerfile"
-    timeoutInMinutes: 0
-    pool:
-      vmImage: 'Ubuntu 16.04'
-    steps:
-
-    - task: Docker@1
-      displayName: 'Login to ACR.'
-      inputs:
-        command: login
-        dockerRegistryEndpoint: camino.azurecr.io
-        containerregistrytype: Container Registry
-
-    - script: |
-        set +e
-        docker pull camino.azurecr.io/athrill/athrill-gcc:latest
-        if [[ $? == 0 ]]; then
-          docker tag camino.azurecr.io/athrill/athrill-gcc:latest athrill/athrill-gcc:latest
-        else
-          docker pull athrill/athrill-gcc:latest
-        fi
-        if [[ $? != 0 ]]; then
-          docker tag scratch athrill/athrill-gcc:latest
-        fi
-        docker pull camino.azurecr.io/eclipse/cpp_gcc:latest
-        if [[ $? == 0 ]]; then
-          docker tag camino.azurecr.io/eclipse/cpp_gcc:latest eclipse/cpp_gcc:latest
-        else
-          docker pull eclipse/cpp_gcc:latest
-        fi
-        if [[ $? != 0 ]]; then
-          docker tag scratch eclipse/cpp_gcc:latest
-        fi
-        exit 0
-      continueOnError: true
-      failOnStderr: false
-      displayName: "Pulling cache. (errors will be ignored)"
-    - script: docker build -f recipes/athrill-gcc/latest/Dockerfile --cache-from athrill/athrill-gcc:latest -t camino.azurecr.io/athrill/athrill-gcc:latest recipes/athrill-gcc/latest
-      displayName: "Building camino.azurecr.io/athrill/athrill-gcc:latest"
-    - script: docker push camino.azurecr.io/athrill/athrill-gcc:latest
-      displayName: "Pushing camino.azurecr.io/athrill/athrill-gcc:latest"
       condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
